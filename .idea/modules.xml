@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/map-gems.iml" filepath="$PROJECT_DIR$/.idea/map-gems.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/map-gems-osm.iml" filepath="$PROJECT_DIR$/.idea/map-gems-osm.iml" />
     </modules>
   </component>
 </project>
