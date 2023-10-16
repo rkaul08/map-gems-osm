@@ -63,7 +63,7 @@ def interactive_map(locations, latitude, longitude, place):
 
 def get_lat_lon_node(result, poi_location, amenity):
     for k in result:
-        print(k)
+
         if k.get("lat") is None and k.get("lon") is None:
             node_id = k["nodes"][0]
             query = f"""
@@ -75,10 +75,8 @@ def get_lat_lon_node(result, poi_location, amenity):
             node_result = requests.get(overpass_url, params={'data': query})
             if node_result.status_code == 200:
                 data = node_result.json()
-            print(data)
             lat = data["elements"][0]["lat"]
             lon = data["elements"][0]["lon"]
-            print(lat,lon)
             poi_location.append([lat, lon, k["tags"].get("name", "unknown").replace("`", "'"), amenity])
         else:
             poi_location.append([k["lat"], k["lon"], k["tags"].get("name", "unknown").replace("`", "'"), amenity])

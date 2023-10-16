@@ -40,7 +40,6 @@ def process():
         return result_str
 
     elif 'show_map' in request.form:
-        print(f"process type is: {request.form}")
         result = subprocess.Popen(
             [python_executable, "scripts/getAmenities.py", location, radius, ','.join(amenities)],
             stdout=subprocess.PIPE,
@@ -48,8 +47,6 @@ def process():
             shell=False
         )
         result.wait()
-        print(f"running map for {location},{amenities}")
-        timestamp = int(time())  # Generate a unique timestamp
         map_filename = "map.html"
         map_directory = os.path.join(os.getcwd(), "templates")
         return send_from_directory(map_directory, map_filename, as_attachment=False)
