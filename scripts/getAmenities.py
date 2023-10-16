@@ -79,9 +79,9 @@ def get_lat_lon_node(result, poi_location, amenity):
             lat = data["elements"][0]["lat"]
             lon = data["elements"][0]["lon"]
             print(lat,lon)
-            poi_location.append([lat, lon, k["tags"].get("name", "unknown"), amenity])
+            poi_location.append([lat, lon, k["tags"].get("name", "unknown").replace("`", "'"), amenity])
         else:
-            poi_location.append([k["lat"], k["lon"], k["tags"].get("name", "unknown"), amenity])
+            poi_location.append([k["lat"], k["lon"], k["tags"].get("name", "unknown").replace("`", "'"), amenity])
 
 
 def amenities_to_map(amenities):
