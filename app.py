@@ -1,18 +1,24 @@
-from flask import Flask, render_template, request,send_from_directory
+from flask import Flask, render_template, request, send_from_directory
 import subprocess
 import os
 import yaml
 from time import time
 
 app = Flask(__name__)
-
-# Set the path to your virtual environment
+#
+# # Set the path to your virtual environment
 venv_path = os.path.join(os.getcwd(), "venv")
 
 amenities_file_path = os.path.join(os.getcwd(), "data/amenities", "amenities.yaml")
+grocery_file_path = os.path.join(os.getcwd(), "data/delivery", "grocery_delivery.yaml")
+
 with open(amenities_file_path, 'r') as amen_file:
     amenities_list = yaml.safe_load(amen_file)
 
+with open(grocery_file_path, 'r') as delivery_file:
+    grocery_list = yaml.safe_load(delivery_file)
+
+amenities_list.update(grocery_list)
 
 @app.route('/')
 def index():
@@ -26,7 +32,6 @@ def process():
     amenities = request.form.getlist('amenities')
 
     python_executable = os.path.join(venv_path, 'bin', 'python')
-
     if 'show_counts' in request.form:
         result_str = ""
         for amenity in amenities:
@@ -50,6 +55,7 @@ def process():
         map_filename = "map.html"
         map_directory = os.path.join(os.getcwd(), "templates")
         return send_from_directory(map_directory, map_filename, as_attachment=False)
+
 
 @app.after_request
 def add_header(response):

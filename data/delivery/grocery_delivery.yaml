@@ -1,0 +1,2 @@
+grocery_delivery:
+  - rewe: https://shop.rewe.de/api/marketselection/zipcodes/{pincode}/services

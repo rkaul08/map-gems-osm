@@ -19,5 +19,7 @@ station:
   - railway
 fitness_centre:
   - leisure
+park:
+  - leisure
 parking:
   - amenity
