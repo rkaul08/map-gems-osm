@@ -7,7 +7,6 @@ import time
 import multiprocessing
 
 
-
 def convert_city_to_geo_code(location):
     loc = Nominatim(user_agent="Geopy Library")
     # entering the location name
@@ -40,15 +39,15 @@ def poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude
     while count < len(input_amenities):
         if ',' not in input_amenities[count]:
             amenity_type = input_amenities[count]
-            query = query + f"  nw(around:{radius},{latitude},{longitude})[amenity={amenity_type}];\n"
+            query = query + f"  nwr(around:{radius},{latitude},{longitude})[amenity={amenity_type}];\n"
             count += 1
         else:
             for tags in input_amenities[count].split(","):
                 if '=' not in tags:
-                    query = query + f"  nw(around:{radius},{latitude},{longitude})[amenity={tags}];\n"
+                    query = query + f"  nwr(around:{radius},{latitude},{longitude})[amenity={tags}];\n"
                 else:
                     value = tags.split("=")
-                    query = query + f"  nw(around:{radius},{latitude},{longitude})[{value[0]}={value[1]}];\n"
+                    query = query + f"  nwr(around:{radius},{latitude},{longitude})[{value[0]}={value[1]}];\n"
             count += 1
     overpass_query = query + ");\nout;"
 
@@ -82,7 +81,7 @@ def get_postal_code(overpass_url, latitude, longitude, radius=100):
     overpass_query = f"""
         [out:json];
         // Query amenities around the specified latitude and longitude within the given radius
-        nw(around:{radius},{latitude},{longitude})["postal_code"];
+        nwr(around:{radius},{latitude},{longitude})["postal_code"];
         out;
         """
     response = requests.get(overpass_url, params={'data': overpass_query})
@@ -103,7 +102,8 @@ def get_node_data(overpass_url, amenity_row, item):
         name = amenity_row["tags"].get("name", "unknown").replace("`", "'")
         amenity = item
         return [latitude, longitude, name, amenity]
-    else:
+
+    elif amenity_row["type"] == "way":
         node_id = amenity_row["nodes"][0]
         name = amenity_row["tags"].get("name", "unknown").replace("`", "'")
         amenity = item
@@ -119,9 +119,30 @@ def get_node_data(overpass_url, amenity_row, item):
             node_data = data['elements'][0]
             latitude = node_data["lat"]
             longitude = node_data["lon"]
+
+            return [latitude, longitude, name, amenity]
+
+    elif amenity_row["type"] == "relation":
+        way_id = amenity_row["members"][0]["ref"]
+        relation_id = amenity_row["id"]
+        name = amenity_row["tags"].get("name", "unknown").replace("`", "'")
+        amenity = item
+        query = f"""[out:json];
+                    relation({relation_id});  // Replace 31076 with the actual relation ID
+                    way({way_id});
+                    node(w);  // Select the first node within the specified way
+                    out;
+                    """
+        relation_result = requests.get(overpass_url, params={'data': query})
+
+        if relation_result.status_code == 200:
+            data = relation_result.json()
+            relation_result_data = data['elements'][0]
+            latitude = relation_result_data["lat"]
+            longitude = relation_result_data["lon"]
             return [latitude, longitude, name, amenity]
         else:
-            print(f"Error: Failed to fetch data. Status Code: {node_result.status_code}")
+            print(f"Error: Failed to fetch data from overpass api")
             return None
 
 
@@ -208,7 +229,7 @@ def main():
     latitude, longitude = convert_city_to_geo_code(place)
     amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
     postal_code = get_postal_code(overpass_url, latitude, longitude)
-    poi_aggregation_result, location_data = pool.apply(poi_aggregation,(overpass_url, input_amenities, input_delivery, amenities, postal_code))
+    poi_aggregation_result, location_data = pool.apply(poi_aggregation, (overpass_url, input_amenities, input_delivery, amenities, postal_code))
     interactive_map(location_data, latitude, longitude, place)
 
     return poi_aggregation_result
