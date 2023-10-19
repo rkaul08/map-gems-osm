@@ -12,4 +12,6 @@ pip3 install --upgrade pip
 pip3 install -r requirements.txt
 
 # Run your Flask app
-flask run
+#flask run
+gunicorn -w 4 -b 0.0.0.0:8000 app:app
+
