@@ -7,7 +7,6 @@ import time
 import multiprocessing
 
 
-
 def convert_city_to_geo_code(location):
     loc = Nominatim(user_agent="Geopy Library")
     # entering the location name
@@ -204,13 +203,45 @@ def main():
     num_cores = os.cpu_count()
     pool = multiprocessing.Pool(processes=num_cores)
 
+    amenities_to_map_start_time = time.time()
     input_amenities, input_delivery = amenities_to_map(parsed_amenities)
-    latitude, longitude = convert_city_to_geo_code(place)
-    amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
-    postal_code = get_postal_code(overpass_url, latitude, longitude)
-    poi_aggregation_result, location_data = pool.apply(poi_aggregation,(overpass_url, input_amenities, input_delivery, amenities, postal_code))
-    interactive_map(location_data, latitude, longitude, place)
+    amenities_to_map_end_time = time.time()
+    duration_amenities_to_map = amenities_to_map_end_time - amenities_to_map_start_time
 
+    print(f"amenities_to_map pocess took {duration_amenities_to_map:.2f} seconds")
+
+    convert_city_to_geo_code_start_time = time.time()
+    latitude, longitude = convert_city_to_geo_code(place)
+    convert_city_to_geo_code_end_time = time.time()
+    duration_convert_city_to_geo_code = convert_city_to_geo_code_end_time - convert_city_to_geo_code_start_time
+    print(f"convert_city_to_geo_code pocess took {duration_convert_city_to_geo_code:.2f} seconds")
+
+    poi_overpass_data_start_time = time.time()
+    amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
+    poi_overpass_data_end_time = time.time()
+    duration_poi_overpass_data = poi_overpass_data_end_time - poi_overpass_data_start_time
+    print(f"poi_overpass_data pocess took {duration_poi_overpass_data:.2f} seconds")
+
+    get_postal_code_start_time = time.time()
+    postal_code = get_postal_code(overpass_url, latitude, longitude)
+    get_postal_code_end_time = time.time()
+    duration_get_postal_code = get_postal_code_end_time - get_postal_code_start_time
+    print(f"get_postal_code pocess took {duration_get_postal_code:.2f} seconds")
+
+    poi_aggregation_start_time = time.time()
+    poi_aggregation_result, location_data = pool.apply(poi_aggregation,(overpass_url, input_amenities, input_delivery, amenities, postal_code))
+    poi_aggregation_end_time = time.time()
+    duration_poi_aggregation = poi_aggregation_end_time - poi_aggregation_start_time
+    print(f"poi_aggregation pocess took {duration_poi_aggregation:.2f} seconds")
+
+    interactive_map_start_time = time.time()
+    interactive_map(location_data, latitude, longitude, place)
+    interactive_map_end_time = time.time()
+    duration_interactive_map = interactive_map_end_time - interactive_map_start_time
+    print(f"interactive_map pocess took {duration_interactive_map:.2f} seconds")
+
+    pool.close()
+    pool.join()
     return poi_aggregation_result
 
 
