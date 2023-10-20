@@ -3,7 +3,6 @@ import yaml
 from geopy.geocoders import Nominatim
 import requests
 import folium
-import time
 import multiprocessing
 
 
@@ -64,15 +63,29 @@ def get_grocery_delivery(delivery_data, pincode):
     temp = {}
     for grocery_store in delivery_data["grocery_delivery"]:
         for brand, url in grocery_store.items():
-            url_postcode = url.format(pincode=pincode)
-            response = requests.get(url_postcode)
-            if response.status_code == 200:
-                data = response.json()
-                temp[brand] = data["hasDelivery"]
+            if brand == "Rewe":
+                url_postcode = url.format(pincode)
+                response = requests.get(url_postcode)
+
+                if response.status_code == 200:
+                    data = response.json()
+                    temp[brand] = data["hasDelivery"]
+
+            elif brand == "BringMeister":
+                url_postcode = url.format("\"" + pincode + "\"")
+                response = requests.get(url_postcode)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data["data"]["getStoreForZipcode"] is not None:
+                        temp[brand] = "True"
+                    else:
+                        temp[brand] = "False"
             else:
                 return f"Error: Failed to fetch delivery data. Status Code: {response.status_code}"
 
     grocery_delivery["grocery_delivery"].append(temp)
+
+
 
     return grocery_delivery
 
@@ -229,7 +242,8 @@ def main():
     latitude, longitude = convert_city_to_geo_code(place)
     amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
     postal_code = get_postal_code(overpass_url, latitude, longitude)
-    poi_aggregation_result, location_data = pool.apply(poi_aggregation, (overpass_url, input_amenities, input_delivery, amenities, postal_code))
+    # poi_aggregation_result, location_data = pool.apply(poi_aggregation, (overpass_url, input_amenities, input_delivery, amenities, postal_code))
+    poi_aggregation_result, location_data = poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, postal_code)
     interactive_map(location_data, latitude, longitude, place)
 
     return poi_aggregation_result
