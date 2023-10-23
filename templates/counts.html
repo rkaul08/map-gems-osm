@@ -40,24 +40,22 @@
     <div class="logo">
         <img src="static/logo.png" alt="Logo">
     </div>
-    <h1>Amenities within {{radius}} km of {{place}} :  </h1>
-    <ul>
-        {% for key, value in counts.items() %}
-            <li>
-                <span class="count">{{ key }}:</span>
-                {% if value is mapping %}
-                    <ul>
-                        {% for subkey, subvalue in value.items() %}
-                            <li class="sub-count">
-                                <span class="count">{{ subkey }}:</span> {{ subvalue }}
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    {{ value }}
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
+    <h1>Amenities within {{radius}} km's of {{place}} :  </h1>
+<ul>
+    {% for key, value in counts.items() %}
+        <li>
+            <span class="count">{{ key }}:</span>
+            {% if value is iterable and value is not string %}
+                {% for item in value %}
+                    {% for subkey, subvalue in item.items() %}
+                        <strong>{{ subkey }}:</strong>{{ subvalue }}
+                    {% endfor %}
+                {% endfor %}
+            {% else %}
+                {{ value }}
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
 </body>
 </html>

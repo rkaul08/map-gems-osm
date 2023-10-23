@@ -6,8 +6,17 @@ amenity:
   - atm,atm=yes
   - supermarket
   - pharmacy
-  - bus_stop
+  - parking
+
+railway:
   - station
+
+leisure:
   - fitness_centre
   - park
-  - parking
+
+highway:
+  - bus_stop
+
+shop:
+  - supermarket

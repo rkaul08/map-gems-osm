@@ -22,11 +22,15 @@ def amenities_to_map(amenities):
     with open(delivery_path, "r") as delivery_file:
         all_delivery = yaml.safe_load(delivery_file)
 
+
     input_amenities = []
-    for amenity, amenity_list in all_amenities.items():
-        for amenity_type in amenity_list:
-            if amenity_type.split(",")[0] in amenities.split(","):
-                input_amenities.append(amenity_type)
+
+    for input_poi in amenities.split(","):
+        for stored_poi_key,stored_poi_values in all_amenities.items():
+            for stored_poi_values_exploded in stored_poi_values:
+                if input_poi in stored_poi_values_exploded.split(","):
+                    input_amenities.append([stored_poi_key, stored_poi_values_exploded])
+                    break
 
     input_delivery = {key: value for key, value in all_delivery.items() if key in amenities.split(",")}
     return input_amenities, input_delivery
@@ -36,14 +40,16 @@ def poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude
     count = 0
     query = f"""[out:json]; \n("""
     while count < len(input_amenities):
-        if ',' not in input_amenities[count]:
-            amenity_type = input_amenities[count]
-            query = query + f"  nwr(around:{radius},{latitude},{longitude})[amenity={amenity_type}];\n"
+        if ',' not in input_amenities[count][1]:
+            amenity_key = input_amenities[count][0]
+            amenity_type = input_amenities[count][1]
+            query = query + f"  nwr(around:{radius},{latitude},{longitude})[{amenity_key}={amenity_type}];\n"
             count += 1
         else:
-            for tags in input_amenities[count].split(","):
+            for tags in input_amenities[count][1].split(","):
+                amenity_key = input_amenities[count][0]
                 if '=' not in tags:
-                    query = query + f"  nwr(around:{radius},{latitude},{longitude})[amenity={tags}];\n"
+                    query = query + f"  nwr(around:{radius},{latitude},{longitude})[{amenity_key}={tags}];\n"
                 else:
                     value = tags.split("=")
                     query = query + f"  nwr(around:{radius},{latitude},{longitude})[{value[0]}={value[1]}];\n"
@@ -166,12 +172,14 @@ def poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, po
     # In case we have multiple tags like atm,atm=yes
     # we consider first tag i.e atm only and other tags for it
     # i.e atm=yes will append counts to main key atm only.
-    main_keys = [i.split(",")[0] for i in input_amenities]
+    main_key_parent = [i[0] for i in input_amenities]
+    main_keys = [i[1].split(",")[0] for i in input_amenities]
     searched_idx = []
     location_data = []
 
     for idx, i in enumerate(amenities):
-        item = i["tags"].get("amenity", "unknown")
+        # item = i["tags"].get("amenity", "unknown")
+        item = next((i["tags"].get(key, "unknown") for key in main_key_parent if key in i["tags"]), "unknown")
         if item not in poi_aggregation_result and item in main_keys:
             poi_aggregation_result[item] = 1
             # add row indexes already searched
@@ -185,9 +193,9 @@ def poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, po
             location_data.append(map_location_data)
 
     for items in input_amenities:
-        if len(items.split(",")) > 1:
-            other_values = items.split(",")[1:]
-            key = items.split(",")[0]
+        if len(items[1].split(",")) > 1:
+            other_values = items[1].split(",")[1:]
+            key = items[1].split(",")[0]
 
             for j in other_values:
                 other_key = j.split('=')[0]
@@ -243,9 +251,8 @@ def main():
     amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
     postal_code = get_postal_code(overpass_url, latitude, longitude)
     poi_aggregation_result, location_data = pool.apply(poi_aggregation, (overpass_url, input_amenities, input_delivery, amenities, postal_code))
-    # poi_aggregation_result, location_data = poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, postal_code)
+    # # # poi_aggregation_result, location_data = poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, postal_code)
     interactive_map(location_data, latitude, longitude, place)
-
     return poi_aggregation_result
 
 
