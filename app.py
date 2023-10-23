@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, send_from_directory
 import subprocess
 import os
+import ast
 import yaml
 from time import time
 
@@ -48,8 +49,10 @@ def process():
                 text=True,
                 shell=False
             )
-        print()
-        return result.stdout
+        data = ast.literal_eval(result.stdout)
+        return render_template('counts.html', counts=data, radius= radius, place=location)
+
+        # return result.stdout
 
     elif 'show_map' in request.form:
         result = subprocess.Popen(

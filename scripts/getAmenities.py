@@ -90,7 +90,7 @@ def get_grocery_delivery(delivery_data, pincode):
     return grocery_delivery
 
 
-def get_postal_code(overpass_url, latitude, longitude, radius=100):
+def get_postal_code(overpass_url, latitude, longitude, radius=500):
     overpass_query = f"""
         [out:json];
         // Query amenities around the specified latitude and longitude within the given radius
@@ -235,15 +235,15 @@ def main():
     place = sys.argv[1]  # Replace with the desired latitude
     radius = int(sys.argv[2]) * 1000  # The radius converted in meters, entered in kms
     parsed_amenities = sys.argv[3]  # The amenities user is interested in mapping
-    num_cores = os.cpu_count()
+    num_cores = int(os.cpu_count()*3/4)
     pool = multiprocessing.Pool(processes=num_cores)
 
     input_amenities, input_delivery = amenities_to_map(parsed_amenities)
     latitude, longitude = convert_city_to_geo_code(place)
     amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
     postal_code = get_postal_code(overpass_url, latitude, longitude)
-    # poi_aggregation_result, location_data = pool.apply(poi_aggregation, (overpass_url, input_amenities, input_delivery, amenities, postal_code))
-    poi_aggregation_result, location_data = poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, postal_code)
+    poi_aggregation_result, location_data = pool.apply(poi_aggregation, (overpass_url, input_amenities, input_delivery, amenities, postal_code))
+    # poi_aggregation_result, location_data = poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, postal_code)
     interactive_map(location_data, latitude, longitude, place)
 
     return poi_aggregation_result
