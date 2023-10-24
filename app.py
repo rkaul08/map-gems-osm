@@ -39,7 +39,6 @@ def process():
     radius = request.form.get('radius')
     amenities = request.form.getlist('amenities')
 
-
     python_executable = os.path.join(venv_path, 'bin', 'python')
     if 'show_counts' in request.form:
         result = subprocess.run(

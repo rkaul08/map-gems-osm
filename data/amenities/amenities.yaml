@@ -4,9 +4,10 @@ amenity:
   - cafe
   - bank
   - atm,atm=yes
-  - supermarket
   - pharmacy
   - parking
+  - car_rental
+  - car_sharing
 
 railway:
   - station
