@@ -13,6 +13,8 @@ To run the application simply run sh -x run_app.sh and it will host the app at  
 Preview of the web app: 
 ![ScreenShot](https://raw.github.com/rkaul08/map-gems-osm/master/app-screenshot/frontend-image.png)
 
+Preview of the map in UI:
+![ScreenShot](https://raw.github.com/rkaul08/map-gems-osm/master/app-screenshot/frontend-map.png)
 
 
 
