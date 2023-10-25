@@ -1,25 +1,23 @@
-school:
-  - amenity
-hospital:
-  - amenity
-cafe:
-  - amenity
-bank:
-  - amenity
-atm:
-  - amenity
-  - atm=yes
-supermarket:
-  - shop
-pharmacy:
-  - amenity
-bus_stop:
-  - highway
-station:
-  - railway
-fitness_centre:
-  - leisure
-park:
-  - leisure
-parking:
-  - amenity
+amenity:
+  - school
+  - hospital
+  - cafe
+  - bank
+  - atm,atm=yes
+  - pharmacy
+  - parking
+  - car_rental
+  - car_sharing
+
+railway:
+  - station
+
+leisure:
+  - fitness_centre
+  - park
+
+highway:
+  - bus_stop
+
+shop:
+  - supermarket

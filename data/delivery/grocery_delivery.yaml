@@ -1,2 +1,3 @@
 grocery_delivery:
-  - rewe: https://shop.rewe.de/api/marketselection/zipcodes/{pincode}/services
+  - Rewe: https://shop.rewe.de/api/marketselection/zipcodes/{}/services
+  - BringMeister: https://www.bringmeister.de/graphql?query=query{{getStoreForZipcode(zipcode:{}){{displayName storeId trackingRegion}}}}

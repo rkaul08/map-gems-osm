@@ -1,10 +1,10 @@
 body {
-    background-image: url("background.jpg"); /* Path to your background image */
+    background-image: url("immo_back.png"); /* Path to your background image */
     background-size: cover;
     background-repeat: no-repeat;
     background-attachment: fixed;
 }
-
+ß
 h1 {
     /* Optional: Add styles for the heading */
     color: #fff;

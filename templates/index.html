@@ -6,17 +6,19 @@
         body {
             background-color: #f0f0f0;
             text-align: center;
+            font-family: 'Helvetica', sans-serif;
         }
 
         h1 {
-            background-color: #007bff;
-            color: #fff;
-            padding: 10px;
+            background-color: transparent;
+            color: #000000;
+            padding: 20px;
+            font-family: 'Helvetica', sans-serif;
         }
 
         form {
             margin: 20px;
-            background-color: #fff;
+            background-color: transparent;
             padding: 20px;
             border-radius: 5px;
         }
@@ -24,6 +26,9 @@
         label {
             color: #333;
             font-weight: bold;
+            font-family: 'Helvetica', sans-serif;
+            text-align: left; /* Align the label text to the left */
+
         }
 
         input[type="text"], select {
@@ -32,6 +37,7 @@
             margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 5px;
+            font-family: 'Helvetica', sans-serif;
         }
 
         select {
@@ -63,7 +69,10 @@
     </style>
 </head>
 <body>
-    <h1>Open Street Maps: POI</h1>
+    <div class="logo">
+        <img src="static/logo.png" alt="Logo">
+    </div>
+    <h1>Points of Interest</h1>
     <form method="POST" action="/process">
         <label for="location">Location (street name or street Address):</label>
         <input type="text" id="location" name="location" required><br>
@@ -87,20 +96,5 @@
         <input type="submit" name="show_counts" value="Show Counts">
         <input type="submit" name="show_map" value="Show Map">
     </form>
-
-    {% if counts %}
-    <h2>Counts:</h2>
-    <ul>
-        {% for amenity, count in counts.items() %}
-            <li>{{ amenity }}: {{ count }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-
-    {% if map_data %}
-    <h2>Map:</h2>
-    <!-- Include code here to display the map using map_data -->
-    </div>
-    {% endif %}
 </body>
 </html>

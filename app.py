@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, send_from_directory
 import subprocess
 import os
+import ast
 import yaml
 from time import time
 
@@ -18,11 +19,18 @@ with open(amenities_file_path, 'r') as amen_file:
 with open(grocery_file_path, 'r') as delivery_file:
     grocery_list = yaml.safe_load(delivery_file)
 
-amenities_list.update(grocery_list)
+amenities_available = []
+for amenity,amenity_type in amenities_list.items():
+    for item in amenity_type:
+        amenities_available.append(item.split(",")[0])
+
+for key in grocery_list:
+    amenities_available.append(key)
+
 
 @app.route('/')
 def index():
-    return render_template('index.html', amenities=amenities_list)
+    return render_template('index.html', amenities=amenities_available)
 
 
 @app.route('/process', methods=['POST'])
@@ -33,16 +41,16 @@ def process():
 
     python_executable = os.path.join(venv_path, 'bin', 'python')
     if 'show_counts' in request.form:
-        result_str = ""
-        for amenity in amenities:
-            result = subprocess.run(
-                [python_executable, "scripts/getAmenities.py", location, radius, amenity],
+        result = subprocess.run(
+                [python_executable, "scripts/getAmenities.py", location, radius, ','.join(amenities)],
                 stdout=subprocess.PIPE,
                 text=True,
                 shell=False
             )
-            result_str = result_str + str(result.stdout)
-        return result_str
+        data = ast.literal_eval(result.stdout)
+        return render_template('counts.html', counts=data, radius= radius, place=location)
+
+        # return result.stdout
 
     elif 'show_map' in request.form:
         result = subprocess.Popen(
