@@ -54,7 +54,7 @@ def poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude
                     value = tags.split("=")
                     query = query + f"  nwr(around:{radius},{latitude},{longitude})[{value[0]}={value[1]}];\n"
             count += 1
-    overpass_query = query + ");\nout;"
+    overpass_query = query + ");\nout center;"
 
     response = requests.get(overpass_url, params={'data': overpass_query})
     if response.status_code == 200:
@@ -62,6 +62,43 @@ def poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude
     amenities = data['elements']
 
     return amenities
+
+
+def poi_overpass_data_summary(overpass_url, input_amenities, radius, latitude, longitude, input_delivery, postal_code):
+    poi_aggregation_result = {}
+    for amenity in input_amenities:
+        if ',' not in amenity[1]:
+            amenity_key = amenity[0]
+            amenity_type = amenity[1]
+            query = f"""[out:json];
+                        nwr(around:{radius},{latitude},{longitude})[{amenity_key}={amenity_type}];
+                        out count;
+                        """
+            response = requests.get(overpass_url, params={'data': query})
+            if response.status_code == 200:
+                data = response.json()
+                poi_aggregation_result[amenity_type] = data["elements"][0]["tags"]["total"]
+        else:
+            query = f""" [out:json];\n"""
+            amenity_key = amenity[0]
+            amenity_type = amenity[1].split(",")[0]
+            for tags in amenity[1].split(","):
+                if '=' not in tags:
+                    query = query + f"""nwr(around:{radius},{latitude},{longitude})[{amenity_key}={tags}];\n"""
+                else:
+                    value = tags.split("=")
+                    query = query + f"  nwr(around:{radius},{latitude},{longitude})[{value[0]}={value[1]}];\n out count;"
+            response = requests.get(overpass_url, params={'data': query})
+            if response.status_code == 200:
+                data = response.json()
+                poi_aggregation_result[amenity_type] = data["elements"][0]["tags"]["total"]
+
+    if len(input_delivery)>0:
+        grocery_data = get_grocery_delivery(input_delivery, postal_code)
+        poi_aggregation_result.update(grocery_data)
+        return poi_aggregation_result
+    else:
+        return poi_aggregation_result
 
 
 def get_grocery_delivery(delivery_data, pincode):
@@ -90,8 +127,6 @@ def get_grocery_delivery(delivery_data, pincode):
                 return f"Error: Failed to fetch delivery data. Status Code: {response.status_code}"
 
     grocery_delivery["grocery_delivery"].append(temp)
-
-
 
     return grocery_delivery
 
@@ -122,52 +157,16 @@ def get_node_data(overpass_url, amenity_row, item):
         amenity = item
         return [latitude, longitude, name, amenity]
 
-    elif amenity_row["type"] == "way":
-        node_id = amenity_row["nodes"][0]
+    elif amenity_row["type"] == "way" or amenity_row["type"] == "relation":
+        latitude = amenity_row["center"]["lat"]
+        longitude = amenity_row["center"]["lon"]
         name = amenity_row["tags"].get("name", "unknown").replace("`", "'")
         amenity = item
-        query = f"""
-                [out:json];
-                node({node_id});
-                out;
-                """
-        node_result = requests.get(overpass_url, params={'data': query})
 
-        if node_result.status_code == 200:
-            data = node_result.json()
-            node_data = data['elements'][0]
-            latitude = node_data["lat"]
-            longitude = node_data["lon"]
-
-            return [latitude, longitude, name, amenity]
-
-    elif amenity_row["type"] == "relation":
-        way_id = amenity_row["members"][0]["ref"]
-        relation_id = amenity_row["id"]
-        name = amenity_row["tags"].get("name", "unknown").replace("`", "'")
-        amenity = item
-        query = f"""[out:json];
-                    relation({relation_id});  // Replace 31076 with the actual relation ID
-                    way({way_id});
-                    node(w);  // Select the first node within the specified way
-                    out;
-                    """
-        relation_result = requests.get(overpass_url, params={'data': query})
-
-        if relation_result.status_code == 200:
-            data = relation_result.json()
-            relation_result_data = data['elements'][0]
-            latitude = relation_result_data["lat"]
-            longitude = relation_result_data["lon"]
-            return [latitude, longitude, name, amenity]
-        else:
-            print(f"Error: Failed to fetch data from overpass api")
-            return None
+        return [latitude, longitude, name, amenity]
 
 
 def poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, postal_code):
-    poi_aggregation_result = {}
-
     # get the POI main_keys for which info is needed,
     # In case we have multiple tags like atm,atm=yes
     # we consider first tag i.e atm only and other tags for it
@@ -178,16 +177,8 @@ def poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, po
     location_data = []
 
     for idx, i in enumerate(amenities):
-        # item = i["tags"].get("amenity", "unknown")
         item = next((i["tags"].get(key, "unknown") for key in main_key_parent if key in i["tags"]), "unknown")
-        if item not in poi_aggregation_result and item in main_keys:
-            poi_aggregation_result[item] = 1
-            # add row indexes already searched
-            searched_idx.append(idx)
-            map_location_data = get_node_data(overpass_url, i, item)
-            location_data.append(map_location_data)
-        elif item in main_keys:
-            poi_aggregation_result[item] = poi_aggregation_result[item] + 1
+        if item in main_keys:
             searched_idx.append(idx)
             map_location_data = get_node_data(overpass_url, i, item)
             location_data.append(map_location_data)
@@ -203,23 +194,12 @@ def poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, po
                 for idx, k in enumerate(amenities):
                     # skip looking into row indexes already searched
                     if idx not in searched_idx:
-                        if k["tags"].get(other_key, "unknown") == other_value and key not in poi_aggregation_result:
-                            poi_aggregation_result[key] = 1
+                        if k["tags"].get(other_key, "unknown") == other_value:
                             searched_idx.append(idx)
-                            map_location_data = get_node_data(overpass_url, i, item)
-                            location_data.append(map_location_data)
-                        elif k["tags"].get(other_key, "unknown") == other_value:
-                            poi_aggregation_result[key] = poi_aggregation_result[key] + 1
-                            searched_idx.append(idx)
-                            map_location_data = get_node_data(overpass_url, i, item)
+                            map_location_data = get_node_data(overpass_url, k, key)
                             location_data.append(map_location_data)
 
-    if len(input_delivery)>0:
-        grocery_data = get_grocery_delivery(input_delivery, postal_code)
-        poi_aggregation_result.update(grocery_data)
-        return poi_aggregation_result, location_data
-    else:
-        return poi_aggregation_result, location_data
+    return location_data
 
 
 def interactive_map(locations, latitude, longitude, place):
@@ -250,7 +230,8 @@ def main():
     latitude, longitude = convert_city_to_geo_code(place)
     amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
     postal_code = get_postal_code(overpass_url, latitude, longitude)
-    poi_aggregation_result, location_data = pool.apply(poi_aggregation, (overpass_url, input_amenities, input_delivery, amenities, postal_code))
+    poi_aggregation_result = poi_overpass_data_summary(overpass_url, input_amenities, radius, latitude, longitude, input_delivery, postal_code)
+    location_data = pool.apply(poi_aggregation, (overpass_url, input_amenities, input_delivery, amenities, postal_code))
     # # # poi_aggregation_result, location_data = poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, postal_code)
     interactive_map(location_data, latitude, longitude, place)
     return poi_aggregation_result
