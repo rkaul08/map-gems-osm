@@ -223,18 +223,22 @@ def main():
     place = sys.argv[1]  # Replace with the desired latitude
     radius = int(sys.argv[2]) * 1000  # The radius converted in meters, entered in kms
     parsed_amenities = sys.argv[3]  # The amenities user is interested in mapping
+    return_type = sys.argv[4] # Can be count or map
     num_cores = int(os.cpu_count()*3/4)
     pool = multiprocessing.Pool(processes=num_cores)
 
     input_amenities, input_delivery = amenities_to_map(parsed_amenities)
     latitude, longitude = convert_city_to_geo_code(place)
-    amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
-    postal_code = get_postal_code(overpass_url, latitude, longitude)
-    poi_aggregation_result = poi_overpass_data_summary(overpass_url, input_amenities, radius, latitude, longitude, input_delivery, postal_code)
-    location_data = pool.apply(poi_aggregation, (overpass_url, input_amenities, amenities))
-    # # # poi_aggregation_result, location_data = poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, postal_code)
-    interactive_map(location_data, latitude, longitude, place)
-    return poi_aggregation_result
+    if return_type == "count":
+        postal_code = get_postal_code(overpass_url, latitude, longitude)
+        poi_aggregation_result = poi_overpass_data_summary(overpass_url, input_amenities, radius, latitude, longitude, input_delivery, postal_code)
+        return poi_aggregation_result
+    if return_type == "maps":
+        amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
+        location_data = pool.apply(poi_aggregation, (overpass_url, input_amenities, amenities))
+        # # # poi_aggregation_result, location_data = poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, postal_code)
+        interactive_map(location_data, latitude, longitude, place)
+        return {}
 
 
 if __name__ == '__main__':

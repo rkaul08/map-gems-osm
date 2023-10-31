@@ -42,7 +42,7 @@ def process():
     python_executable = os.path.join(venv_path, 'bin', 'python')
     if 'show_counts' in request.form:
         result = subprocess.run(
-                [python_executable, "scripts/getAmenities.py", location, radius, ','.join(amenities)],
+                [python_executable, "scripts/getAmenities.py", location, radius, ','.join(amenities), "count"],
                 stdout=subprocess.PIPE,
                 text=True,
                 shell=False
@@ -54,7 +54,7 @@ def process():
 
     elif 'show_map' in request.form:
         result = subprocess.Popen(
-            [python_executable, "scripts/getAmenities.py", location, radius, ','.join(amenities)],
+            [python_executable, "scripts/getAmenities.py", location, radius, ','.join(amenities), "maps"],
             stdout=subprocess.PIPE,
             text=True,
             shell=False

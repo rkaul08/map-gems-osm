@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#wget -N -P data/osm/ https://download.geofabrik.de/europe/germany/berlin-latest.osm.pbf
+
 # Create a virtual environment named 'venv'
 python3 -m venv venv
 source venv
