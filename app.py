@@ -6,6 +6,7 @@ import yaml
 from time import time
 
 app = Flask(__name__)
+
 #
 # # Set the path to your virtual environment
 venv_path = os.path.join(os.getcwd(), "venv")
@@ -63,6 +64,15 @@ def process():
         map_filename = "map.html"
         map_directory = os.path.join(os.getcwd(), "templates")
         return send_from_directory(map_directory, map_filename, as_attachment=False)
+    if 'show_nearest' in request.form:
+        result = subprocess.run(
+                [python_executable, "scripts/getAmenities.py", location, radius, ','.join(amenities), "nearest"],
+                stdout=subprocess.PIPE,
+                text=True,
+                shell=False
+            )
+        data = ast.literal_eval(result.stdout)
+        return render_template('nearest.html', counts=data, radius=radius, place=location)
 
 
 @app.after_request
@@ -72,4 +82,5 @@ def add_header(response):
 
 
 if __name__ == '__main__':
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.run(debug=True)

@@ -16,5 +16,5 @@ pip3 install -r requirements.txt
 # Run your Flask app
 #flask run
 
-gunicorn -w 7 -b 0.0.0.0:8000 app:app --timeout 3600
+gunicorn -w 7 -b 0.0.0.0:8000 app:app --timeout 3600 --reload
 

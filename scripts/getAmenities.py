@@ -4,6 +4,7 @@ from geopy.geocoders import Nominatim
 import requests
 import folium
 import multiprocessing
+import math
 
 
 def convert_city_to_geo_code(location):
@@ -22,11 +23,10 @@ def amenities_to_map(amenities):
     with open(delivery_path, "r") as delivery_file:
         all_delivery = yaml.safe_load(delivery_file)
 
-
     input_amenities = []
 
     for input_poi in amenities.split(","):
-        for stored_poi_key,stored_poi_values in all_amenities.items():
+        for stored_poi_key, stored_poi_values in all_amenities.items():
             for stored_poi_values_exploded in stored_poi_values:
                 if input_poi in stored_poi_values_exploded.split(","):
                     input_amenities.append([stored_poi_key, stored_poi_values_exploded])
@@ -93,7 +93,7 @@ def poi_overpass_data_summary(overpass_url, input_amenities, radius, latitude, l
                 data = response.json()
                 poi_aggregation_result[amenity_type] = data["elements"][0]["tags"]["total"]
 
-    if len(input_delivery)>0:
+    if len(input_delivery) > 0:
         grocery_data = get_grocery_delivery(input_delivery, postal_code)
         poi_aggregation_result.update(grocery_data)
         return poi_aggregation_result
@@ -180,7 +180,7 @@ def poi_aggregation(overpass_url, input_amenities, amenities):
         item = next((i["tags"].get(key, "unknown") for key in main_key_parent if key in i["tags"]), "unknown")
         if item in main_keys:
             searched_idx.append(idx)
-            map_location_data = get_node_data( i, item)
+            map_location_data = get_node_data(i, item)
             location_data.append(map_location_data)
 
     for items in input_amenities:
@@ -200,6 +200,77 @@ def poi_aggregation(overpass_url, input_amenities, amenities):
                             location_data.append(map_location_data)
 
     return location_data
+
+
+def haversine_distance(origin, point):
+    # Radius of the Earth in kilometers
+    earth_radius = 6371  # Use 3958.8 for miles
+
+    # Convert latitude and longitude from degrees to radians
+    lat_origin = math.radians(origin[0])
+    lon_origin = math.radians(origin[1])
+    lat_point = math.radians(point[0])
+    lon_point = math.radians(point[1])
+
+    # Haversine formula
+    dlat = lat_point - lat_origin
+    dlon = lon_point - lon_origin
+
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat_origin) * math.cos(lat_point) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    # Calculate the distance
+    distance = round(earth_radius * c, 2)
+    point.append(distance)
+    return point
+
+
+def poi_aggregation_nearest(overpass_url, input_amenities, amenities, origin, radius):
+    # get the POI main_keys for which info is needed,
+    # In case we have multiple tags like atm,atm=yes
+    # we consider first tag i.e atm only and other tags for it
+    # i.e atm=yes will append counts to main key atm only.
+    main_key_parent = [i[0] for i in input_amenities]
+    main_keys = [i[1].split(",")[0] for i in input_amenities]
+    location_data = []
+    nearest_distance = {}
+
+    for idx, i in enumerate(amenities):
+        item = next((i["tags"].get(key, "unknown") for key in main_key_parent if key in i["tags"]), "unknown")
+        if item in main_keys:
+            map_location_data = get_node_data(i, item)
+            loc_with_distance = haversine_distance(origin, map_location_data)
+            distance_from_add = loc_with_distance[4]
+            amenity_name = loc_with_distance[3]
+
+            if amenity_name not in nearest_distance.keys():
+                nearest_distance[amenity_name] = loc_with_distance
+            elif distance_from_add < nearest_distance[amenity_name][4]:
+                nearest_distance[amenity_name] = loc_with_distance
+
+    for items in input_amenities:
+        if len(items[1].split(",")) > 1:
+            other_values = items[1].split(",")[1:]
+            key = items[1].split(",")[0]
+
+            for j in other_values:
+                other_key = j.split('=')[0]
+                other_value = j.split('=')[1]
+                for idx, k in enumerate(amenities):
+                    if k["tags"].get(other_key, "unknown") == other_value:
+                        map_location_data = get_node_data(k, key)
+                        loc_with_distance = haversine_distance(origin, map_location_data)
+                        distance_from_add = loc_with_distance[4]
+                        amenity_name = loc_with_distance[3]
+                        if amenity_name not in nearest_distance.keys():
+                            nearest_distance[amenity_name] = loc_with_distance
+                        elif distance_from_add < nearest_distance[amenity_name][4]:
+                            nearest_distance[amenity_name] = loc_with_distance
+
+    location_data = [value for value in nearest_distance.values()]
+    result_dict = {item[3]: item[4] for item in location_data}
+
+    return location_data,result_dict
 
 
 def interactive_map(locations, latitude, longitude, place):
@@ -223,15 +294,16 @@ def main():
     place = sys.argv[1]  # Replace with the desired latitude
     radius = int(sys.argv[2]) * 1000  # The radius converted in meters, entered in kms
     parsed_amenities = sys.argv[3]  # The amenities user is interested in mapping
-    return_type = sys.argv[4] # Can be count or map
-    num_cores = int(os.cpu_count()*3/4)
+    return_type = sys.argv[4]  # Can be count or map
+    num_cores = int(os.cpu_count() * 3 / 4)
     pool = multiprocessing.Pool(processes=num_cores)
 
     input_amenities, input_delivery = amenities_to_map(parsed_amenities)
     latitude, longitude = convert_city_to_geo_code(place)
     if return_type == "count":
         postal_code = get_postal_code(overpass_url, latitude, longitude)
-        poi_aggregation_result = poi_overpass_data_summary(overpass_url, input_amenities, radius, latitude, longitude, input_delivery, postal_code)
+        poi_aggregation_result = poi_overpass_data_summary(overpass_url, input_amenities, radius, latitude, longitude,
+                                                           input_delivery, postal_code)
         return poi_aggregation_result
     if return_type == "maps":
         amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
@@ -239,6 +311,12 @@ def main():
         # # # poi_aggregation_result, location_data = poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, postal_code)
         interactive_map(location_data, latitude, longitude, place)
         return {}
+    if return_type == "nearest":
+        origin = [latitude, longitude]
+        amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
+        location_data, result_dict = pool.apply(poi_aggregation_nearest, (overpass_url, input_amenities, amenities, origin, radius))
+        interactive_map(location_data, latitude, longitude, place)
+        return result_dict
 
 
 if __name__ == '__main__':
