@@ -225,7 +225,7 @@ def haversine_distance(origin, point):
     return point
 
 
-def poi_aggregation_nearest(overpass_url, input_amenities, amenities, origin, radius):
+def poi_aggregation_nearest(overpass_url, input_amenities, amenities, origin):
     # get the POI main_keys for which info is needed,
     # In case we have multiple tags like atm,atm=yes
     # we consider first tag i.e atm only and other tags for it
@@ -273,7 +273,7 @@ def poi_aggregation_nearest(overpass_url, input_amenities, amenities, origin, ra
     return location_data,result_dict
 
 
-def interactive_map(locations, latitude, longitude, place):
+def interactive_map(locations, latitude, longitude, place, filename):
     m = folium.Map(location=[latitude, longitude], zoom_start=20)
     folium.Marker([latitude, longitude], tooltip="Your Location", popup=place, icon=folium.Icon(color="red")).add_to(m)
     for location in locations:
@@ -285,7 +285,7 @@ def interactive_map(locations, latitude, longitude, place):
             icon=folium.CustomIcon(icon_image=icon_path, icon_size=(32, 32))
         ).add_to(m)
 
-    result_path = os.path.join(os.getcwd(), "templates", "map.html")
+    result_path = os.path.join(os.getcwd(), "templates", filename)
     m.save(result_path)
 
 
@@ -306,17 +306,22 @@ def main():
                                                            input_delivery, postal_code)
         return poi_aggregation_result
     if return_type == "maps":
+        filename = "map.html"
         amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
         location_data = pool.apply(poi_aggregation, (overpass_url, input_amenities, amenities))
         # # # poi_aggregation_result, location_data = poi_aggregation(overpass_url, input_amenities, input_delivery, amenities, postal_code)
-        interactive_map(location_data, latitude, longitude, place)
+        interactive_map(location_data, latitude, longitude, place,filename)
         return {}
-    if return_type == "nearest":
+    if return_type == "nearest" or return_type == "nearest_maps":
         origin = [latitude, longitude]
         amenities = poi_overpass_data(overpass_url, input_amenities, radius, latitude, longitude)
-        location_data, result_dict = pool.apply(poi_aggregation_nearest, (overpass_url, input_amenities, amenities, origin, radius))
-        interactive_map(location_data, latitude, longitude, place)
-        return result_dict
+        location_data, result_dict = pool.apply(poi_aggregation_nearest, (overpass_url, input_amenities, amenities, origin))
+        if return_type == "nearest":
+            return result_dict
+        else:
+            filename = 'nearest_map.html'
+            interactive_map(location_data, latitude, longitude, place, filename)
+            return {}
 
 
 if __name__ == '__main__':

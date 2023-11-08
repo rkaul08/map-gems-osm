@@ -29,8 +29,22 @@ for key in grocery_list:
     amenities_available.append(key)
 
 
+# @app.route('/')
+# def index():
+#     return render_template('index.html', amenities=amenities_available)
+
 @app.route('/')
-def index():
+def purpose_selection():
+    return render_template('purpose_selection.html')
+
+
+@app.route('/travel')
+def travel_purpose():
+    return render_template('index.html', amenities=amenities_available)
+
+
+@app.route('/residential')
+def residential_purpose():
     return render_template('index.html', amenities=amenities_available)
 
 
@@ -73,6 +87,17 @@ def process():
             )
         data = ast.literal_eval(result.stdout)
         return render_template('nearest.html', counts=data, radius=radius, place=location)
+    if 'show_nearest_map' in request.form:
+        result = subprocess.Popen(
+            [python_executable, "scripts/getAmenities.py", location, radius, ','.join(amenities), "nearest_maps"],
+            stdout=subprocess.PIPE,
+            text=True,
+            shell=False
+        )
+        result.wait()
+        map_filename = "nearest_map.html"
+        map_directory = os.path.join(os.getcwd(), "templates")
+        return send_from_directory(map_directory, map_filename, as_attachment=False)
 
 
 @app.after_request
