@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body {
+            background-color: #f0f0f0;
+            text-align: center;
+            font-family: 'Helvetica', sans-serif;
+        }
+
+        h1 {
+            background-color: transparent;
+            color: #000000;
+            padding: 20px;
+            font-family: 'Helvetica', sans-serif;
+        }
+
+        form {
+            margin: 20px;
+            background-color: transparent;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        label {
+            color: #333;
+            font-weight: bold;
+            font-family: 'Helvetica', sans-serif;
+            text-align: left; /* Align the label text to the left */
+
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-family: 'Helvetica', sans-serif;
+        }
+
+        select {
+            height: auto;
+        }
+
+        input[type="submit"] {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            color: #333;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">
+        <img src="static/logo.png" alt="Logo">
+    </div>
+    <h1>Purpose of Travel</h1>
+    <form method="POST" action="/process">
+        <label for="location">Travel Destination:</label>
+        <input type="text" id="location" name="location" required list="location-suggestions" autocomplete="off"><br>
+
+        <datalist id="location-suggestions"></datalist> <!-- The datalist for location suggestions -->
+
+        <br>
+<label for="travel_purposes">Purpose of Travel:</label>
+<div style="text-align: left;">
+    {% for purpose in travel_purposes %}
+    <input type="checkbox" name="travel_purposes" value="{{ purpose }}" id="{{ purpose }}">
+    <label for="{{ purpose }}">{{ purpose }}</label><br>
+    {% endfor %}
+</div>
+<br>
+
+        <input type="submit" name="show_counts" value="Total Amenities">
+        <input type="submit" name="show_map" value="Map Amenities">
+        <input type="submit" name="show_nearest" value="Nearest Amenities">
+        <input type="submit" name="show_nearest_map" value="Map Nearest Amenities">
+    </form>
+<!-- Include Axios for location suggestions -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+        const locationInput = document.getElementById("location");
+        const suggestionsList = document.getElementById("location-suggestions");
+
+        locationInput.addEventListener("input", function () {
+            const inputText = locationInput.value;
+
+            // Remove any previous suggestions
+            suggestionsList.innerHTML = "";
+
+            // Fetch geocoding suggestions from Nominatim API using Axios
+            axios
+                .get(`https://nominatim.openstreetmap.org/search?format=json&q=${inputText}`)
+                .then(response => {
+                    const data = response.data;
+                    data.forEach(item => {
+                        const suggestion = item.display_name;
+                        const option = document.createElement("option");
+                        option.value = suggestion;
+                        suggestionsList.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error("Error fetching geocoding data: " + error);
+                });
+        });
+    </script>
+</body>
+</html>

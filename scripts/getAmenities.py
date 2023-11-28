@@ -131,7 +131,7 @@ def get_grocery_delivery(delivery_data, pincode):
     return grocery_delivery
 
 
-def get_postal_code(overpass_url, latitude, longitude, radius=500):
+def get_postal_code(overpass_url, latitude, longitude, radius=2000):
     overpass_query = f"""
         [out:json];
         // Query amenities around the specified latitude and longitude within the given radius

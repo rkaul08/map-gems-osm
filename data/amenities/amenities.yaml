@@ -1,6 +1,8 @@
 amenity:
   - school
-  - hospital
+  - kindergarten
+  - hospital,healthcare=hospital
+  - clinic
   - cafe
   - bank
   - atm,atm=yes

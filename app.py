@@ -13,12 +13,16 @@ venv_path = os.path.join(os.getcwd(), "venv")
 
 amenities_file_path = os.path.join(os.getcwd(), "data/amenities", "amenities.yaml")
 grocery_file_path = os.path.join(os.getcwd(), "data/delivery", "grocery_delivery.yaml")
+travel_file_path = os.path.join(os.getcwd(), "data/travel", "travel_purpose.yaml")
 
 with open(amenities_file_path, 'r') as amen_file:
     amenities_list = yaml.safe_load(amen_file)
 
 with open(grocery_file_path, 'r') as delivery_file:
     grocery_list = yaml.safe_load(delivery_file)
+
+with open(travel_file_path, 'r') as travel_file:
+    travel_list = yaml.safe_load(travel_file)
 
 amenities_available = []
 for amenity,amenity_type in amenities_list.items():
@@ -27,6 +31,10 @@ for amenity,amenity_type in amenities_list.items():
 
 for key in grocery_list:
     amenities_available.append(key)
+
+travel_purposes = travel_list["travel_purpose"]
+
+
 
 
 # @app.route('/')
@@ -40,7 +48,7 @@ def purpose_selection():
 
 @app.route('/travel')
 def travel_purpose():
-    return render_template('index.html', amenities=amenities_available)
+    return render_template('travel_city.html', travel_purposes=travel_purposes)
 
 
 @app.route('/residential')
